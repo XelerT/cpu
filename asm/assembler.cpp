@@ -3,28 +3,6 @@
 #include <string.h>
 #include "assembler.h"
 
-int main (int argc, char *argv[])
-{
-        if (int i = check_argv(argc, argv))
-                return i;
-        FILE *src_code    = nullptr;
-        FILE *output_code = nullptr;
-        char output_file_name[MAX_NAME_LENGTH] = {};
-        src_code    = fopen(argv[2], "r");
-        strcpy(output_file_name, argv[1]);
-        append_txt(output_file_name);
-        output_code = fopen(output_file_name, "w");
-
-        code_t code = {};
-
-        get_code(src_code, &code, argv[2]);
-        convert_code(&code, output_code);
-
-        fclose(src_code);
-        fclose(output_code);
-        return 0;
-}
-
 int check_argv (int argc, char **argv)
 {
         if (argc != 3)
@@ -45,10 +23,12 @@ int check_argv (int argc, char **argv)
 
 int convert_code (code_t *code, FILE *output_code)
 {
+        assert(code);
+        assert(output_code);
+
         char cmd[MAX_NAME_LENGTH] = {};
         for (int i = 0; i < code->n_lines; i++) {
                 sscanf(code->lines[i].ptr, "%s", cmd);
-                printf("%s\n", cmd);
                 if (stricmp(cmd, "push") == 0) {
                         int val = 0;
                         sscanf(code->lines[i].ptr + strlen(cmd), "%d", &val);
@@ -68,7 +48,7 @@ int convert_code (code_t *code, FILE *output_code)
                 } else if (stricmp(cmd, "in") == 0) {
                         fprintf(output_code, "%d ", CMD_IN);
                 } else if (stricmp(cmd, "hlt") == 0) {
-                        fprintf(output_code, "%d ", CMD_HLT);
+                        fprintf(output_code, "%d\n", CMD_HLT);
                 } else if (stricmp(cmd, "dump") == 0) {
                         fprintf(output_code, "%d ", CMD_DUMP);
                 }

@@ -2,14 +2,13 @@
 #include <sys/stat.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "buffer.h"
+#include "asm\buffer.h"
 
 void get_code (FILE *input, code_t *code, char *code_file)
 {
         struct stat file = {};
         if (stat(code_file, &file) < 0)
                 return;
-
         size_t n_chars = 0;
         char *buf = (char*) calloc(file.st_size + 1, sizeof(char));
         if (!buf) {
@@ -28,7 +27,6 @@ void get_code (FILE *input, code_t *code, char *code_file)
 
         code->buf = buf;
         size_t n_lines = file.st_size - n_chars;
-
         code->n_lines = n_lines;
         divide_code (code);
 }
