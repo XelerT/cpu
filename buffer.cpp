@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "asm\buffer.h"
+#include "buffer.h"
 
 void get_code (FILE *input, code_t *code, char *code_file)
 {

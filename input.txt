@@ -1,5 +1,9 @@
 push 5
 push 3
+label:
+push 8
 add
+out
+jmp label
 out
 hlt

@@ -2,32 +2,21 @@
 #define CPU_H
 
 #include <string.h>
-#include "buffer.h"
+#include <stdlib.h>
+#include "..\buffer.h"
 #include "stack\stack.h"
+#include "..\cmd.h"
 
-enum cmd {
-        CMD_PUSH =  1,
-        CMD_POP  =  2,
-        CMD_ADD  =  3,
-        CMD_SUB  =  4,
-        CMD_MUL  =  5,
-        CMD_DIV  =  6,
-        CMD_OUT  =  7,
-        CMD_IN   =  8, //?
-        CMD_HLT  =  9,
-        CMD_DUMP = 10
+static const int  DEFAULT_CAPACITY =   50;
+static const int REGISTER_CAPACITY =    8;
+static const int      RAM_CAPACITY = 8192;
+
+struct cpu {
+        int registers[REGISTER_CAPACITY] = {};
+        int RAM[RAM_CAPACITY] = {};
 };
 
-enum errors {
-        EXECUTE_ERR = -3,
-        NO_SOURCE = -2,
-        NO_OUTPUT_NAME = -1
-};
-
-
-static const int MAX_NAME_LENGTH = 20;
-static const int DEFAULT_CAPACITY = 50;
-
+int divide_cmds (code_t *code);
 int execute_code (code_t *code, stack *stk);
 int tens_count (int num);
 void append_txt (char *output_file_name);

@@ -15,6 +15,16 @@ int main (int argc, char *argv[])
         get_code(source_code, &code, input_file_name);
         if (!source_code)
                 return NO_SOURCE;
+
+        switch (divide_cmds(&code)) {
+        case 1:
+                break;
+        case 0:
+                return 0;
+        default:
+                return EXECUTE_ERR;
+        }
+
         switch (execute_code(&code, &stk)) {
         case 1:
                 break;
@@ -24,5 +34,6 @@ int main (int argc, char *argv[])
                 return EXECUTE_ERR;
         }
 
+        free(code.cmds);
         return 0;
 }
