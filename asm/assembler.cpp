@@ -21,7 +21,7 @@ int check_argv (int argc, char **argv)
         return 0;
 }
 
-int convert_code (code_t *code, FILE *output_code, int second, labels_t *labels, int *asm_code)
+int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *labels, int *asm_code)
 {
         assert(code);
         assert(output_code);
@@ -33,12 +33,13 @@ int convert_code (code_t *code, FILE *output_code, int second, labels_t *labels,
         for (int i = 0; i < code->n_lines; i++) {
                 sscanf(code->lines[i].ptr, "%s", cmd);
                 if (stricmp(cmd, "push") == 0) {
-                        int val = 0;
-                        asm_code[ip++] = CMD_PUSH;
-                        sscanf(code->lines[i].ptr + strlen(cmd), "%d", &val);
-                        asm_code[ip++] = val;
+                        sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
+                        asm_code[--ip] = get_push_code(name, &asm_code[++ip]);
+                        ip += 2;
                 } else if (stricmp(cmd, "pop") == 0) {
-                        asm_code[ip++] = CMD_POP;
+                        sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
+                        asm_code[--ip] = get_pop_code(name, &asm_code[++ip]/*, code->lines[i].length*/);
+                        ip += 2;
                 } else if (stricmp(cmd, "add") == 0) {
                         asm_code[ip++] = CMD_ADD;
                 } else if (stricmp(cmd, "sub") == 0) {
@@ -57,7 +58,7 @@ int convert_code (code_t *code, FILE *output_code, int second, labels_t *labels,
                         asm_code[ip++] = CMD_DUMP;
                 } else if (stricmp(cmd, "jmp") == 0) {
                         asm_code[ip++] = CMD_JMP;
-                        if (second) {
+                        if (second_cycle) {
                                 sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
                                 if ((asm_code[ip++] = get_jmp_line(labels, name)) == NO_LABEL)
                                         return NO_LABEL;
@@ -70,7 +71,7 @@ int convert_code (code_t *code, FILE *output_code, int second, labels_t *labels,
                         asm_code[ip++] = CMD_LABEL;
                 }
         }
-        if (second) {
+        if (second_cycle) {
                 return 0;
         } else {
                 convert_code(code, output_code, 1, labels, asm_code);
@@ -83,6 +84,75 @@ int convert_code (code_t *code, FILE *output_code, int second, labels_t *labels,
         }
 
         return 0;
+}
+
+int get_push_code (const char *val, int *asm_code)
+{
+        int num = 0;
+        int reg = 0;
+        char temp_val[MAX_NAME_LENGTH] = {};
+
+        if (sscanf(val, "[%s]", temp_val)) {
+                num = ARG_RAM;
+                if ((reg = find_reg(temp_val)) > 0) {
+                        num |= ARG_REG;
+                        *asm_code = reg;
+                } else if (sscanf(temp_val, "%d", asm_code)) {
+                        num |= ARG_IMMED;
+                }
+        } else if (sscanf(val, "%s", temp_val)) {
+                if ((reg = find_reg(temp_val)) > 0) {
+                        num = ARG_REG;
+                        *asm_code = reg;
+                } else if (sscanf(val, "%d", asm_code)) {
+                        num = ARG_IMMED;
+                }
+        }
+
+        return num + CMD_PUSH;
+}
+
+int get_pop_code (const char *val, int *asm_code)
+{
+        int num = 0;
+        int reg = 0;
+        char temp_val[MAX_NAME_LENGTH] = {};
+
+        if (sscanf(val, "[%s]", temp_val)) {
+                num = ARG_RAM;
+                if ((reg = find_reg(temp_val)) > 0) {
+                        num |= ARG_REG;
+                        *asm_code = reg;
+                } else if (sscanf(temp_val, "%d", asm_code)) {
+                        num |= ARG_IMMED;
+                }
+        } else if (sscanf(val, "%s", temp_val))
+                if ((reg = find_reg(temp_val)) > 0) {
+                        num = ARG_REG;
+                        *asm_code = reg;
+                }
+
+        return num | CMD_POP;
+}
+
+int find_reg (const char *val)
+{
+        const char *regs_names[N_REGS] = {
+                "rax",
+                "rbx",
+                "rcx",
+                "rdx",
+                "rex",
+                "rfx",
+                "rgx",
+                "rhx"
+        };
+
+        for (int i = 0; i < N_REGS; i++)
+                if (strstr(val, regs_names[i]))
+                        return *(regs_names[i] + 1) - 'a' + 1;
+
+        return NO_REGISTER;
 }
 
 int get_jmp_line (labels_t *labels, char *name)

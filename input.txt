@@ -1,9 +1,7 @@
-push 5
-push 3
-label:
-push 8
-add
+4:
+push 15
+pop [rax]
+push [rax]
 out
-jmp label
-out
+jmp 4
 hlt
