@@ -19,5 +19,6 @@ int get_jmp_line (labels_t *labels, char *name);
 int get_push_code (const char *val, int *asm_code);
 int find_reg (const char *val);
 int get_pop_code (const char *val, int *asm_code);
+char* get_label_name (labels_t *label);
 
 #endif

@@ -1,7 +1,9 @@
-4:
+3:
 push 15
-pop [rax]
-push [rax]
+push 16
+push 17
+push rax
+pop rax
 out
-jmp 4
+jmp 3
 hlt

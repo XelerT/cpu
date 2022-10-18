@@ -63,13 +63,29 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
                                 if ((asm_code[ip++] = get_jmp_line(labels, name)) == NO_LABEL)
                                         return NO_LABEL;
                         } else {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", labels->name);
+                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_label_name(labels));
                                 asm_code[ip++] = -1;
                         }
                 } else if (strrchr(cmd, ':')) {
-                        create_label(labels, cmd, ip);
+                        if (!second_cycle)
+                                create_label(labels, cmd, ip);
                         asm_code[ip++] = CMD_LABEL;
-                }
+                } /*else if (stricmp(cmd, "call") == 0) {
+                        asm_code[ip++] = CMD_CALL;
+                        if (second_cycle) {
+                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
+                                if ((asm_code[ip++] = get_jmp_line(call_labels, name)) == NO_LABEL)
+                                        return NO_LABEL;
+                        } else {
+                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", labels->name);
+                                asm_code[ip++] = -1;
+                        }
+                }  else if (stricmp(cmd, "ret")) {
+                        asm_code[ip++] = CMD_RETURN;
+                } else {
+                        create_label(labels, cmd, ip);
+                        asm_code[ip++] = CMD_CALL_LABEL;
+                } */
         }
         if (second_cycle) {
                 return 0;
@@ -157,24 +173,40 @@ int find_reg (const char *val)
 
 int get_jmp_line (labels_t *labels, char *name)
 {
+        assert(labels);
+
         for (int i = 0; i < MAX_N_LABELS; i++)
                 if (!strcmp(labels[i].name, name))
                         return labels[i].line;
+
         return NO_LABEL;
+}
+
+char* get_label_name (labels_t *labels)
+{
+        for (int i = 0; i < MAX_N_LABELS; i++)
+                if (labels[i].name[0] == '\0')
+                        return labels[i].name;
+
+        return nullptr;
 }
 
 int create_label (labels_t *labels, const char *cmd, int n_line)
 {
+                // printf(" qwerty2 %s %d\n", cmd, n_line);
         int i = 0;
         char name[MAX_NAME_LENGTH] = {};
         strcpy(name, cmd);
+                // printf(" qwerty3 %s %d\n", name, n_line);
         while (name[i] != ':')
                 i++;
-        name[--i] = '\0';
+        name[i] = '\0';
         for (i = 0; i < MAX_N_LABELS; i++) {
                 if (labels[i].name[0] == '\0') {
                         strcpy(labels[i].name, name);
                         labels[i].line = n_line;
+                        // printf("N_LINE %d %s\n", labels[i].line, labels[i].name);
+                        break;
                 }
         }
 

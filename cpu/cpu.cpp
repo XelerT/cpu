@@ -9,31 +9,35 @@ int execute_code (code_t *code, stack *stk, cpu_t *cpu)
 
         int ip = 0;
         int temp = 0;
-        while (code->cmds[ip] != CMD_HLT)
-                switch (code->cmds[ip]) {
-                case CMD_PUSH_RAM:
-                        stack_push(stk, cpu->RAM[code->cmds[++ip]]);
-                        // printf("ram %d\n",cpu->RAM[code->cmds[ip]]);
-                        ip++;
+        while (code->cmds[ip] != CMD_HLT) {
+                switch (code->cmds[ip] & MASK_CMD) {
+                case CMD_PUSH:
+                        if (code->cmds[ip] & ARG_IMMED) {
+                                stack_push(stk, code->cmds[++ip]);
+                                ip++;
+                        } else if (code->cmds[ip] & ARG_RAM) {
+                                if (code->cmds[ip] & ARG_REG)
+                                        stack_push(stk, cpu->RAM[cpu->registers[code->cmds[++ip]]]);
+                                if (code->cmds[ip] & ARG_IMMED)
+                                        stack_push(stk, cpu->RAM[code->cmds[++ip]]);
+                                ip++;
+                        } else if (code->cmds[ip] & ARG_REG) {
+                                stack_push(stk, cpu->registers[code->cmds[++ip]]);
+                                ip++;
+                        }
                         break;
-                case CMD_PUSH_REG:
-                        stack_push(stk, cpu->registers[code->cmds[++ip]]);
-                        // printf("reg %d %d %d\n",code->cmds[ip-1],code->cmds[ip], code->cmds[ip+1]);
-                        ip++;
-                        break;
-                case CMD_PUSH_IMMED:
-                        stack_push(stk, code->cmds[++ip]);
-                        // printf("immed %d\n",code->cmds[ip]);
-                        ip++;
-                        break;
-                case CMD_POP_RAM:
-                        cpu->RAM[code->cmds[++ip]] = stack_pop(stk);
-                        ip++;
-                        break;
-                case CMD_POP_REG:
-                        cpu->registers[code->cmds[++ip]] = stack_pop(stk);
-                        // printf("pop reg %d %d %d\n",code->cmds[ip-1],code->cmds[ip], code->cmds[ip+1]);
-                        ip++;
+                case CMD_POP:
+                        if (code->cmds[ip] & ARG_RAM) {
+                                if (code->cmds[ip] & ARG_REG)
+                                        cpu->RAM[cpu->registers[code->cmds[++ip]]] = stack_pop(stk);
+                                if (code->cmds[ip] & ARG_IMMED)
+                                        cpu->RAM[code->cmds[++ip]] = stack_pop(stk);
+                                ip++;
+                        }
+                        if (code->cmds[ip] & ARG_REG) {
+                                cpu->registers[code->cmds[++ip]] = stack_pop(stk);
+                                ip++;
+                        }
                         break;
                 case CMD_ADD:
                         stack_push(stk, stack_pop(stk) + stack_pop(stk));
@@ -69,8 +73,7 @@ int execute_code (code_t *code, stack *stk, cpu_t *cpu)
                 default:
                         ip++;
                 }
-        // if ((value = stack_pop(&stk1)) == POP_ERROR)
-        //         return POP_ERROR;
+        }
 
         return 1;
 }
@@ -117,6 +120,8 @@ int divide_cmds (code_t *code)
 
 void append_txt (char *output_file_name)
 {
+        assert(output_file_name);
+
         if (strstr(output_file_name, ".txt") == nullptr)
                 for (int i = 0; i < MAX_NAME_LENGTH; i++)
                         if (output_file_name[i] == '\0') {
