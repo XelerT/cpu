@@ -1,9 +1,15 @@
-3:
+func
+push 42
+out
+ret
 push 15
 push 16
+call func
+call func
+call func
 push 17
 push rax
 pop rax
 out
-jmp 3
+out
 hlt

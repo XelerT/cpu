@@ -9,6 +9,11 @@ int execute_code (code_t *code, stack *stk, cpu_t *cpu)
 
         int ip = 0;
         int temp = 0;
+        stack call_stack = {};
+        if (oper_stack_ctor(&call_stack, DEFAULT_CAPACITY, (char*) "call_stack",
+                            (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+                return CTOR_ERROR;
+
         while (code->cmds[ip] != CMD_HLT) {
                 switch (code->cmds[ip] & MASK_CMD) {
                 case CMD_PUSH:
@@ -38,6 +43,8 @@ int execute_code (code_t *code, stack *stk, cpu_t *cpu)
                                 cpu->registers[code->cmds[++ip]] = stack_pop(stk);
                                 ip++;
                         }
+                        // if (!(code->cmds[ip] & ARG_RAM) && !(code->cmds[ip] & ARG_REG))
+
                         break;
                 case CMD_ADD:
                         stack_push(stk, stack_pop(stk) + stack_pop(stk));
@@ -70,6 +77,21 @@ int execute_code (code_t *code, stack *stk, cpu_t *cpu)
                 case CMD_JMP:
                         ip = code->cmds[++ip];
                         break;
+                case CMD_CALL:
+                        stack_push(&call_stack, ip + 2);
+                        ip = code->cmds[++ip] + 1;
+                        break;
+                case CMD_RETURN:
+                        ip = stack_pop(&call_stack);
+                        break;
+                case CMD_IN:
+                        scanf("%d", &temp);
+                        stack_push(stk, temp);
+                        ip++;
+                        break;
+                case CMD_CALL_LABEL:
+                        while (code->cmds[ip] != CMD_RETURN)
+                                ip++;
                 default:
                         ip++;
                 }

@@ -14,11 +14,12 @@ struct labels_t
 int convert_code (code_t *code, FILE *output_code, int second, labels_t *labels, int *asm_code);
 int check_argv (int argc, char *argv[]);
 void append_txt (char *output_file_name);
-int create_label (labels_t *labels, const char *cmd, int n_line);
+int create_label (labels_t *labels, const char *cmd, int n_line, int is_call);
 int get_jmp_line (labels_t *labels, char *name);
 int get_push_code (const char *val, int *asm_code);
 int find_reg (const char *val);
 int get_pop_code (const char *val, int *asm_code);
-char* get_label_name (labels_t *label);
+char* get_free_label_name (labels_t *label);
+void listing (code_t *code, int *asm_code, char *function, int line);
 
 #endif

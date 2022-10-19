@@ -56,6 +56,8 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
                         asm_code[ip++] = CMD_HLT;
                 } else if (stricmp(cmd, "dump") == 0) {
                         asm_code[ip++] = CMD_DUMP;
+                } else if (stricmp(cmd, "ret") == 0) {
+                        asm_code[ip++] = CMD_RETURN;
                 } else if (stricmp(cmd, "jmp") == 0) {
                         asm_code[ip++] = CMD_JMP;
                         if (second_cycle) {
@@ -63,29 +65,30 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
                                 if ((asm_code[ip++] = get_jmp_line(labels, name)) == NO_LABEL)
                                         return NO_LABEL;
                         } else {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_label_name(labels));
+                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_free_label_name(labels));
                                 asm_code[ip++] = -1;
                         }
                 } else if (strrchr(cmd, ':')) {
                         if (!second_cycle)
-                                create_label(labels, cmd, ip);
+                                create_label(labels, cmd, ip, 0);
                         asm_code[ip++] = CMD_LABEL;
-                } /*else if (stricmp(cmd, "call") == 0) {
-                        asm_code[ip++] = CMD_CALL;
-                        if (second_cycle) {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
-                                if ((asm_code[ip++] = get_jmp_line(call_labels, name)) == NO_LABEL)
+                } else if (stricmp(cmd, "call") == 0) {                                                                 // |   call func +1<---|
+                        asm_code[ip++] = CMD_CALL;                                                                      // |   ....            |
+                        if (second_cycle) {                                                                             // |-> func            |
+                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);                                   //     ...             |
+                                if ((asm_code[ip++] = get_jmp_line(labels, name)) == NO_LABEL)                          //     ret            -|
                                         return NO_LABEL;
                         } else {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", labels->name);
-                                asm_code[ip++] = -1;
+                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_free_label_name(labels));
+                                asm_code[ip++] = -2;
                         }
-                }  else if (stricmp(cmd, "ret")) {
-                        asm_code[ip++] = CMD_RETURN;
                 } else {
-                        create_label(labels, cmd, ip);
-                        asm_code[ip++] = CMD_CALL_LABEL;
-                } */
+                        if (get_jmp_line(labels, cmd) != NO_LABEL) {
+                                if (!second_cycle)
+                                        create_label(labels, cmd, ip, 1);
+                                asm_code[ip++] = CMD_CALL_LABEL;
+                        }
+                }
         }
         if (second_cycle) {
                 return 0;
@@ -98,7 +101,7 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
                 if (asm_code[i] == CMD_HLT)
                         fprintf(output_code, "\n");
         }
-
+        listing(code, asm_code, (char *) __PRETTY_FUNCTION__, __LINE__);
         return 0;
 }
 
@@ -126,6 +129,38 @@ int get_push_code (const char *val, int *asm_code)
         }
 
         return num + CMD_PUSH;
+}
+
+void listing (code_t *code, int *asm_code, char *function, int line)
+{
+        printf("\n\nListing for %s on the %d line.\n\n", function, line);
+        int ip = 0;
+        for (int i = 0; i < code->n_lines; i++, ip++) {
+                switch (asm_code[ip] & MASK_CMD) {
+                case CMD_PUSH:
+                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        ip++;
+                        break;
+                case CMD_POP:
+                        if ((asm_code[ip] & ARG_REG) || (asm_code[ip] & ARG_RAM))
+                                printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        if (asm_code[ip] & ARG_IMMED)
+                                printf("%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
+                        ip++;
+                        break;
+                case CMD_JMP:
+                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        ip++;
+                        break;
+                case CMD_CALL:
+                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        ip++;
+                        break;
+                default:
+                        printf("*%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
+                        break;
+                }
+        }
 }
 
 int get_pop_code (const char *val, int *asm_code)
@@ -182,7 +217,7 @@ int get_jmp_line (labels_t *labels, char *name)
         return NO_LABEL;
 }
 
-char* get_label_name (labels_t *labels)
+char* get_free_label_name (labels_t *labels)
 {
         for (int i = 0; i < MAX_N_LABELS; i++)
                 if (labels[i].name[0] == '\0')
@@ -191,22 +226,35 @@ char* get_label_name (labels_t *labels)
         return nullptr;
 }
 
-int create_label (labels_t *labels, const char *cmd, int n_line)
+int create_label (labels_t *labels, const char *cmd, int n_line, int is_call)
 {
                 // printf(" qwerty2 %s %d\n", cmd, n_line);
         int i = 0;
         char name[MAX_NAME_LENGTH] = {};
         strcpy(name, cmd);
+        int label_exist = get_jmp_line(labels, name);
                 // printf(" qwerty3 %s %d\n", name, n_line);
-        while (name[i] != ':')
+        while (name[i] != ':' && !is_call)
                 i++;
-        name[i] = '\0';
-        for (i = 0; i < MAX_N_LABELS; i++) {
-                if (labels[i].name[0] == '\0') {
-                        strcpy(labels[i].name, name);
-                        labels[i].line = n_line;
-                        // printf("N_LINE %d %s\n", labels[i].line, labels[i].name);
-                        break;
+        if (!is_call)
+                name[i] = '\0';
+
+        if (label_exist == NO_LABEL) {
+                for (i = 0; i < MAX_N_LABELS; i++) {
+                        if (labels[i].name[0] == '\0') {
+                                strcpy(labels[i].name, name);
+                                labels[i].line = n_line;
+                                // printf("N_LINE %d %s\n", labels[i].line, labels[i].name);
+                                break;
+                        }
+                }
+        } else {
+                for (i = 0; i < MAX_N_LABELS; i++) {
+                        if (strcmp(labels[i].name, name) == 0) {
+                                labels[i].line = n_line;
+                                // printf("N_LINE %d %s\n", labels[i].line, labels[i].name);
+                                break;
+                        }
                 }
         }
 

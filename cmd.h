@@ -30,12 +30,7 @@ enum masks {
 
 enum cmd {
         CMD_PUSH       =  1,
-        // CMD_PUSH_REG   = ARG_REG   + CMD_PUSH,
-        // CMD_PUSH_RAM   = ARG_RAM   + CMD_PUSH,
-        // CMD_PUSH_IMMED = ARG_IMMED + CMD_PUSH,
         CMD_POP        =  2,
-        // CMD_POP_REG    = ARG_REG   + CMD_POP,
-        // CMD_POP_RAM    = ARG_RAM   + CMD_POP,
         CMD_ADD        =  3,
         CMD_SUB        =  4,
         CMD_MUL        =  5,
