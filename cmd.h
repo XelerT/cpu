@@ -2,49 +2,52 @@
 #define CMD_H
 
 // DEFINE_REG(DICK, 0x0, 'big_dick', HIDDEN, )
+#define DEF_REG(name,num) REG_##name = num,
 
 enum registers {
-        N_REGS  = 8,
-        REG_RAX = 1,
-        REG_RBX = 2,
-        REG_RCX = 3,
-        REG_RDX = 4,
-        REG_REX = 5,
-        REG_RFX = 6,
-        REG_RGX = 7,
-        REG_RHX = 8
+        #include "registers.en"
+        N_REGS  = 8
 };
+#undef DEF_REG
 
 enum args {
-        ARG_IMMED = 1 << 4,
-        ARG_REG   = 1 << 5,
-        ARG_RAM   = 1 << 6
+        ARG_IMMED = 1 << 5, //0010 0000
+        ARG_REG   = 1 << 6, //0100 0000
+        ARG_RAM   = 1 << 7  //1000 0000
 };
 
 enum masks {
-        MASK_CMD  = 0xF
+        MASK_CMD  = 0x1F
 };
 
 // /* Instruction encoding */
 // DEFINE_CMD(PUSH, 0xF, "push", ...)
 
+#define DEF_CMD(name,num,...) CMD_##name = num,
+#define DEF_STND_CMD(name,num,...) CMD_##name = num,
+#define DEF_J_CMD(name,num,...) CMD_##name = num,
 enum cmd {
-        CMD_PUSH       =  1,
-        CMD_POP        =  2,
-        CMD_ADD        =  3,
-        CMD_SUB        =  4,
-        CMD_MUL        =  5,
-        CMD_DIV        =  6,
-        CMD_OUT        =  7,
-        CMD_IN         =  8,
-        CMD_HLT        =  9,
-        CMD_DUMP       = 10,
-        CMD_JMP        = 11,
+        #include "instructions.en"
+        // CMD_PUSH       =  1,
+        // CMD_POP        =  2,
+        // //CMD_ADD        =  3,
+        // //CMD_SUB        =  4,
+        // //CMD_MUL        =  5,
+        // //CMD_DIV        =  6,
+        // //CMD_OUT        =  7,
+        // //CMD_IN         =  8,
+        // CMD_HLT        =  9,
+        // //CMD_DUMP       = 10,
+        // CMD_JMP        = 11,
         CMD_LABEL      = 12,
-        CMD_CALL       = 13,
-        CMD_CALL_LABEL = 14,
-        CMD_RETURN     = 15
+        // CMD_CALL       = 13,
+        CMD_CALL_LABEL = 14
+        // CMD_RET        = 15
+        // // CMD_NULL = 0
 };
+#undef DEF_CMD
+#undef DEF_STND_CMD
+#undef DEF_J_CMD
 
 enum errors {
         NO_REGISTER    = -7,

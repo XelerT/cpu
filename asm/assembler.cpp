@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include "assembler.h"
@@ -29,59 +30,15 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
         char cmd[MAX_NAME_LENGTH]  = {};
         char name[MAX_NAME_LENGTH] = {};
         int ip = 0;
-
         for (int i = 0; i < code->n_lines; i++) {
                 sscanf(code->lines[i].ptr, "%s", cmd);
-                if (stricmp(cmd, "push") == 0) {
-                        sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
-                        asm_code[--ip] = get_push_code(name, &asm_code[++ip]);
-                        ip += 2;
-                } else if (stricmp(cmd, "pop") == 0) {
-                        sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
-                        asm_code[--ip] = get_pop_code(name, &asm_code[++ip]/*, code->lines[i].length*/);
-                        ip += 2;
-                } else if (stricmp(cmd, "add") == 0) {
-                        asm_code[ip++] = CMD_ADD;
-                } else if (stricmp(cmd, "sub") == 0) {
-                        asm_code[ip++] = CMD_SUB;
-                } else if (stricmp(cmd, "mul") == 0) {
-                        asm_code[ip++] = CMD_MUL;
-                } else if (stricmp(cmd, "div") == 0) {
-                        asm_code[ip++] = CMD_DIV;
-                } else if (stricmp(cmd, "out") == 0) {
-                        asm_code[ip++] = CMD_OUT;
-                } else if (stricmp(cmd, "in") == 0) {
-                        asm_code[ip++] = CMD_IN;
-                } else if (stricmp(cmd, "hlt") == 0) {
-                        asm_code[ip++] = CMD_HLT;
-                } else if (stricmp(cmd, "dump") == 0) {
-                        asm_code[ip++] = CMD_DUMP;
-                } else if (stricmp(cmd, "ret") == 0) {
-                        asm_code[ip++] = CMD_RETURN;
-                } else if (stricmp(cmd, "jmp") == 0) {
-                        asm_code[ip++] = CMD_JMP;
-                        if (second_cycle) {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
-                                if ((asm_code[ip++] = get_jmp_line(labels, name)) == NO_LABEL)
-                                        return NO_LABEL;
-                        } else {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_free_label_name(labels));
-                                asm_code[ip++] = -1;
-                        }
-                } else if (strrchr(cmd, ':')) {
+
+#include "asm_instructions.en"
+
+                if (strrchr(cmd, ':')) {
                         if (!second_cycle)
                                 create_label(labels, cmd, ip, 0);
                         asm_code[ip++] = CMD_LABEL;
-                } else if (stricmp(cmd, "call") == 0) {                                                                 // |   call func +1<---|
-                        asm_code[ip++] = CMD_CALL;                                                                      // |   ....            |
-                        if (second_cycle) {                                                                             // |-> func            |
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);                                   //     ...             |
-                                if ((asm_code[ip++] = get_jmp_line(labels, name)) == NO_LABEL)                          //     ret            -|
-                                        return NO_LABEL;
-                        } else {
-                                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_free_label_name(labels));
-                                asm_code[ip++] = -2;
-                        }
                 } else {
                         if (get_jmp_line(labels, cmd) != NO_LABEL) {
                                 if (!second_cycle)
@@ -93,23 +50,57 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
         if (second_cycle) {
                 return 0;
         } else {
-                convert_code(code, output_code, 1, labels, asm_code);
+                if (convert_code(code, output_code, 1, labels, asm_code) == NO_LABEL)
+                        return NO_LABEL;
         }
 
-        for (int i = 0; i < ip; i++) {
+        for (int i = 0; i <= ip; i++) {
+                printf("%d ", asm_code[i]);
                 fprintf(output_code, "%d ", asm_code[i]);
                 if (asm_code[i] == CMD_HLT)
                         fprintf(output_code, "\n");
         }
+
         listing(code, asm_code, (char *) __PRETTY_FUNCTION__, __LINE__);
         return 0;
 }
 
-int get_push_code (const char *val, int *asm_code)
+int asm_jmp_call (int second_cycle, code_t *code, int *asm_code,
+             char *cmd, char *name, labels_t *labels, int i, int *ip)
 {
+        assert(code);
+        assert(asm_code);
+        assert(cmd);
+        assert(name);
+        assert(labels);
+        assert(ip);
+
+
+        if (second_cycle) {
+                sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
+                if ((asm_code[(*ip)++] = get_jmp_line(labels, name)) == NO_LABEL)
+                        return NO_LABEL;
+        } else {
+                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_free_label_name(labels));
+                if (stricmp(cmd, "jmp") == 0)
+                        asm_code[(*ip)++] = -1;
+                else if (stricmp(cmd, "call") == 0)
+                        asm_code[(*ip)++] = -2;
+        }
+
+        return 0;
+}
+
+int get_pp_code (const char *val, int *asm_code, const char *cmd)
+{
+        assert(val);
+        assert(asm_code);
+        assert(cmd);
+
         int num = 0;
         int reg = 0;
         char temp_val[MAX_NAME_LENGTH] = {};
+        float dot_num = 0;
 
         if (sscanf(val, "[%s]", temp_val)) {
                 num = ARG_RAM;
@@ -123,16 +114,30 @@ int get_push_code (const char *val, int *asm_code)
                 if ((reg = find_reg(temp_val)) > 0) {
                         num = ARG_REG;
                         *asm_code = reg;
-                } else if (sscanf(val, "%d", asm_code)) {
-                        num = ARG_IMMED;
+                } else if ((stricmp(cmd, "push") == 0)) {
+                        if (sscanf(val, "%f", &dot_num)) {
+                        // printf("dotnum %f\n", dot_num);
+                                *asm_code = (int) (dot_num * 100);
+                                num |= ARG_IMMED;
+                        } else if (sscanf(val, "%d", asm_code))
+                                num = ARG_IMMED;
                 }
         }
 
-        return num + CMD_PUSH;
+        if (stricmp(cmd, "pop") == 0)
+                return num | CMD_POP;
+        else if (stricmp(cmd, "push") == 0)
+                return num | CMD_PUSH;
+
+        return NULL;
 }
 
 void listing (code_t *code, int *asm_code, char *function, int line)
 {
+        assert(code);
+        assert(asm_code);
+        assert(function);
+
         printf("\n\nListing for %s on the %d line.\n\n", function, line);
         int ip = 0;
         for (int i = 0; i < code->n_lines; i++, ip++) {
@@ -163,32 +168,11 @@ void listing (code_t *code, int *asm_code, char *function, int line)
         }
 }
 
-int get_pop_code (const char *val, int *asm_code)
-{
-        int num = 0;
-        int reg = 0;
-        char temp_val[MAX_NAME_LENGTH] = {};
-
-        if (sscanf(val, "[%s]", temp_val)) {
-                num = ARG_RAM;
-                if ((reg = find_reg(temp_val)) > 0) {
-                        num |= ARG_REG;
-                        *asm_code = reg;
-                } else if (sscanf(temp_val, "%d", asm_code)) {
-                        num |= ARG_IMMED;
-                }
-        } else if (sscanf(val, "%s", temp_val))
-                if ((reg = find_reg(temp_val)) > 0) {
-                        num = ARG_REG;
-                        *asm_code = reg;
-                }
-
-        return num | CMD_POP;
-}
-
 int find_reg (const char *val)
 {
-        const char *regs_names[N_REGS] = {
+        assert(val);
+
+        static const char *regs_names[N_REGS] = {
                 "rax",
                 "rbx",
                 "rcx",
@@ -209,6 +193,7 @@ int find_reg (const char *val)
 int get_jmp_line (labels_t *labels, char *name)
 {
         assert(labels);
+        assert(name);
 
         for (int i = 0; i < MAX_N_LABELS; i++)
                 if (!strcmp(labels[i].name, name))
@@ -219,6 +204,7 @@ int get_jmp_line (labels_t *labels, char *name)
 
 char* get_free_label_name (labels_t *labels)
 {
+        assert(labels);
         for (int i = 0; i < MAX_N_LABELS; i++)
                 if (labels[i].name[0] == '\0')
                         return labels[i].name;
@@ -228,6 +214,8 @@ char* get_free_label_name (labels_t *labels)
 
 int create_label (labels_t *labels, const char *cmd, int n_line, int is_call)
 {
+        assert(labels);
+        assert(cmd);
                 // printf(" qwerty2 %s %d\n", cmd, n_line);
         int i = 0;
         char name[MAX_NAME_LENGTH] = {};
@@ -263,6 +251,8 @@ int create_label (labels_t *labels, const char *cmd, int n_line, int is_call)
 
 void append_txt (char *output_file_name)
 {
+        assert(output_file_name);
+
         if (strstr(output_file_name, ".txt") == nullptr)
                 for (int i = 0; i < MAX_NAME_LENGTH; i++)
                         if (output_file_name[i] == '\0') {

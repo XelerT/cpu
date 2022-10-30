@@ -4,7 +4,7 @@
 struct line_t
 {
         char *ptr = nullptr;
-        size_t length = 0;
+        size_t length = -1;
 };
 
 struct code_t

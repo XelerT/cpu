@@ -29,9 +29,11 @@ int main (int argc, char *argv[])
                 printf("Calloc return null pointer.\n");
                 return NULL_CALLOC;
         }
-
         get_code(src_code, &code, argv[2]);
-        convert_code(&code, output_code, 0, labels, asm_code);
+        if (convert_code(&code, output_code, 0, labels, asm_code) == NO_LABEL) {
+                printf("No label\n");
+                return NO_LABEL;
+        }
 
         fclose(src_code);
         fclose(output_code);

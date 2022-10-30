@@ -1,0 +1,49 @@
+
+DEF_STND_CMD(PUSH, 1, 1, {PP_CASE printf("push\n");})
+DEF_STND_CMD(POP, 2, 1, {PP_CASE printf("pop\n");})
+
+DEF_CMD(ADD, 3, 1, {PUSH(POP+POP);})
+
+DEF_CMD(SUB, 4, 1, {temp = POP;
+                    PUSH(POP-temp);})
+
+DEF_CMD(MUL, 5, 1, {PUSH(POP*POP);})
+
+DEF_CMD(DIV, 6, 1, {temp = POP;
+                    PUSH(POP/temp);})
+
+DEF_CMD(OUT, 7, 1, {printf("%0.2f\n", (float) POP / 100);})
+
+DEF_CMD(IN, 8, 1, {scanf("%d", &temp);
+                   PUSH(temp);})
+
+DEF_CMD(HLT, 9, 1, {return 0;})
+
+DEF_CMD(DUMP, 10, 1, {stack_dump(stk, (char*) __PRETTY_FUNCTION__,
+                     (char*) __FILE__, __LINE__);})
+
+DEF_J_CMD(JMP, 11, 1, {JMP printf("jmp\n");})
+DEF_J_CMD(JB, 17, 1, {if (POP < POP)         \
+                         JMP})
+DEF_J_CMD(JBE, 18, 1, {if (POP <= POP)       \
+                          JMP})
+DEF_J_CMD(JA, 19, 1, {if (POP > POP)         \
+                         JMP})
+DEF_J_CMD(JAE, 20, 1, {if (POP >= POP)       \
+                          JMP})
+DEF_J_CMD(JE, 21, 1, {if (POP == POP)        \
+                         JMP})
+DEF_J_CMD(JNE, 22, 1, {if (POP != POP)       \
+                          JMP})
+
+//DEF_CMD(LABEL, 12, 1)
+
+DEF_STND_CMD(CALL, 13, 1, {CALL_ printf("call\n");})
+
+//DEF_CMD(CALL_LABEL,14,1)
+
+DEF_CMD(RET, 15, 1, {ip = stack_pop(&call_stack); ip--;})
+
+DEF_CMD(SQRT, 16, 1, {PUSH(sqrt(POP));})
+
+// DEF_CMD(name, number of cmd, argument )

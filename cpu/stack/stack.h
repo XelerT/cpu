@@ -60,7 +60,7 @@ struct stack
         var_info info = {};
         // #ifdef HASH_ON
         gnu_hash *hash = nullptr;
-        // #endif /*HASH_ON*/
+        // #endif /*HASH*/
         int r_canary[N_CANARIES] = {};
 };
 

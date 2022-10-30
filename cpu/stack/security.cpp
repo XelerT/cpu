@@ -4,7 +4,7 @@
 #include "security.h"
 
 #ifdef CANARY_ON
-static const int CANARY = 0xDED32DED;
+static const int CANARY = -2147443648;
 static const int DEAD_CANARY = 16;
 
 void get_canaries (stack *stk)

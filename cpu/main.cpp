@@ -25,12 +25,12 @@ int main (int argc, char *argv[])
         int error = 0;
 
         if (error = divide_cmds(&code)) {
+        printf("%d\n", 6);
                 free(code.cmds);
                 return error;
         }
 
         error = execute_code(&code, &stk, &cpu);
         free(code.cmds);
-
         return error;
 }
