@@ -8,7 +8,7 @@
                                         if (arg) __VA_ARGS__           \
                                         ip++;                          \
                                         break;
-#define PP_CASE         if ((code->cmds[ip] & MASK_CMD) == CMD_PUSH) {                                                      \
+#define PP_CASE(coeff)  if ((code->cmds[ip] & MASK_CMD) == CMD_PUSH) {                                                      \
                                 if (code->cmds[ip] & ARG_IMMED) {                                               \
                                         stack_push(stk, code->cmds[++ip]);                                      \
                                 } else if (code->cmds[ip] & ARG_RAM) {                                          \
@@ -55,64 +55,15 @@ int execute_code (code_t *code, stack *stk, cpu_t *cpu)
         while (code->cmds[ip] != CMD_HLT) {
         // printf("WHILE %d %d\n", code->cmds[ip], ip);
                 switch (code->cmds[ip] & MASK_CMD) {
-                // case CMD_PUSH:
-                //         // printf("PUSH1\n");
-                //         if (code->cmds[ip] & ARG_IMMED) {
-                //                 // printf("PUSH2\n");
-                //                 stack_push(stk, code->cmds[++ip]);
-                //         } else if (code->cmds[ip] & ARG_RAM) {
-                //                 if (code->cmds[ip] & ARG_REG)
-                //                         stack_push(stk, cpu->RAM[cpu->registers[code->cmds[++ip]]]);
-                //                 if (code->cmds[ip] & ARG_IMMED)
-                //                         stack_push(stk, cpu->RAM[code->cmds[++ip]]);
-                //         } else if (code->cmds[ip] & ARG_REG) {
-                //                 stack_push(stk, cpu->registers[code->cmds[++ip]]);
-                //         }
-                //         ip++;
-                //         break;
-//                 case CMD_POP:
-//                         // printf("POP\n");
-//                         if (code->cmds[ip] & ARG_RAM) {
-//                                 if (code->cmds[ip] & ARG_REG)
-//                                         cpu->RAM[cpu->registers[code->cmds[++ip]]] = stack_pop(stk);
-//                                 if (code->cmds[ip] & ARG_IMMED)
-//                                         cpu->RAM[code->cmds[++ip]] = stack_pop(stk);
-//
-//                         }
-//                         if (code->cmds[ip] & ARG_REG) {
-//                                 cpu->registers[code->cmds[++ip]] = stack_pop(stk);
-//                         }
-//                         // if (!(code->cmds[ip] & ARG_RAM) && !(code->cmds[ip] & ARG_REG))
-//                         ip++;
-//                         break;
 #include "..\instructions.en"
-                // case CMD_HLT:
-                //         // printf("HLT\n");
-                //         return 0;
-                // case CMD_JMP:
-                // // printf("JMP\n");
-                //         ip = code->cmds[++ip];
-                //         break;
-                // case CMD_CALL:
-                // // printf("CALL\n");
-                //         stack_push(&call_stack, ip + 2);
-                //         ip = code->cmds[++ip];
-                //         ip++;
-                //         break;
-                // case CMD_RET:
-                // // printf("RET\n");
-                //         ip = stack_pop(&call_stack);
-                //         break;
                 case CMD_CALL_LABEL:
-                // printf("CALL_LABEl\n");
                         while (code->cmds[ip] != CMD_RET)
                                 ip++;
                         ip++;
                         break;
                 default:
-                // printf("DEF\n");
                         ip++;
-                        // printf("def\n");
+
                 }
         }
 

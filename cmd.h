@@ -6,7 +6,7 @@
 
 enum registers {
         #include "registers.en"
-        N_REGS  = 8
+        N_REGS  = 9
 };
 #undef DEF_REG
 
@@ -28,22 +28,8 @@ enum masks {
 #define DEF_J_CMD(name,num,...) CMD_##name = num,
 enum cmd {
         #include "instructions.en"
-        // CMD_PUSH       =  1,
-        // CMD_POP        =  2,
-        // //CMD_ADD        =  3,
-        // //CMD_SUB        =  4,
-        // //CMD_MUL        =  5,
-        // //CMD_DIV        =  6,
-        // //CMD_OUT        =  7,
-        // //CMD_IN         =  8,
-        // CMD_HLT        =  9,
-        // //CMD_DUMP       = 10,
-        // CMD_JMP        = 11,
         CMD_LABEL      = 12,
-        // CMD_CALL       = 13,
         CMD_CALL_LABEL = 14
-        // CMD_RET        = 15
-        // // CMD_NULL = 0
 };
 #undef DEF_CMD
 #undef DEF_STND_CMD
@@ -60,5 +46,6 @@ enum errors {
 };
 
 static const int MAX_NAME_LENGTH = 20;
+static const int threshold = 100;
 
 #endif /*CMD_H*/

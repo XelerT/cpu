@@ -1,7 +1,7 @@
 
-#define PP_CASE                                                                \
+#define PP_CASE(coeff)                                                                \
                 {sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);          \
-                asm_code[--ip] = get_pp_code(name, &asm_code[++ip], cmd);      \
+                asm_code[--ip] = get_pp_code(name, &asm_code[++ip], cmd, coeff);      \
                 ip += 2;}
 
 #define DEF_CMD(name_,num,arg,...)                       \

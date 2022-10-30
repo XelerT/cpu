@@ -8,8 +8,12 @@ call func
 call func
 call func
 push 17
-push rax
 pop rax
+push rax
 out
 out
+pushf 11.11
+pushf 12.99
+mulf
+outf
 hlt

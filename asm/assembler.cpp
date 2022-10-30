@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #include "assembler.h"
 
 int check_argv (int argc, char **argv)
@@ -91,7 +92,7 @@ int asm_jmp_call (int second_cycle, code_t *code, int *asm_code,
         return 0;
 }
 
-int get_pp_code (const char *val, int *asm_code, const char *cmd)
+int get_pp_code (const char *val, int *asm_code, const char *cmd, int coeff)
 {
         assert(val);
         assert(asm_code);
@@ -114,19 +115,19 @@ int get_pp_code (const char *val, int *asm_code, const char *cmd)
                 if ((reg = find_reg(temp_val)) > 0) {
                         num = ARG_REG;
                         *asm_code = reg;
-                } else if ((stricmp(cmd, "push") == 0)) {
+                } else if ((stricmp(cmd, "push") == 0) || (stricmp(cmd, "pushf") == 0)) {
                         if (sscanf(val, "%f", &dot_num)) {
-                        // printf("dotnum %f\n", dot_num);
-                                *asm_code = (int) (dot_num * 100);
+                        printf("dotnum %f\n", dot_num);
+                                *asm_code = (int) (dot_num * coeff);
                                 num |= ARG_IMMED;
                         } else if (sscanf(val, "%d", asm_code))
                                 num = ARG_IMMED;
                 }
         }
 
-        if (stricmp(cmd, "pop") == 0)
+        if (stricmp(cmd, "pop") == 0  || (stricmp(cmd, "popf") == 0))
                 return num | CMD_POP;
-        else if (stricmp(cmd, "push") == 0)
+        else if (stricmp(cmd, "push") == 0 || (stricmp(cmd, "pushf") == 0))
                 return num | CMD_PUSH;
 
         return NULL;
@@ -144,6 +145,17 @@ void listing (code_t *code, int *asm_code, char *function, int line)
                 switch (asm_code[ip] & MASK_CMD) {
                 case CMD_PUSH:
                         printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        ip++;
+                        break;
+                case CMD_PUSHF:
+                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        ip++;
+                        break;
+                case CMD_POPF:
+                        if ((asm_code[ip] & ARG_REG) || (asm_code[ip] & ARG_RAM))
+                                printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                        if (asm_code[ip] & ARG_IMMED)
+                                printf("%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
                         ip++;
                         break;
                 case CMD_POP:
@@ -168,27 +180,26 @@ void listing (code_t *code, int *asm_code, char *function, int line)
         }
 }
 
+#define DEF_REG(name,...) #name,
 int find_reg (const char *val)
 {
         assert(val);
 
+        char upper_val[MAX_NAME_LENGTH] = {};
+        for (int i = 0; *(val + i) != '\0'; i++)
+                upper_val[i] = toupper(*(val + i));
         static const char *regs_names[N_REGS] = {
-                "rax",
-                "rbx",
-                "rcx",
-                "rdx",
-                "rex",
-                "rfx",
-                "rgx",
-                "rhx"
+#include "..\registers.en"
+                "R0X"
         };
 
         for (int i = 0; i < N_REGS; i++)
-                if (strstr(val, regs_names[i]))
-                        return *(regs_names[i] + 1) - 'a' + 1;
+                if (strstr(upper_val, regs_names[i]))
+                        return *(regs_names[i] + 1) - 'A' + 1;
 
         return NO_REGISTER;
 }
+#undef DEF_REG
 
 int get_jmp_line (labels_t *labels, char *name)
 {
