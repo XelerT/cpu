@@ -22,5 +22,6 @@ int get_pp_code (const char *val, int *asm_code, const char *name, int coeff);
 char* get_free_label_name (labels_t *label);
 void listing (code_t *code, int *asm_code, char *function, int line);
 int asm_jmp_call (int second_cycle, code_t *code, int *asm_code, char *cmd, char *name, labels_t *labels, int i, int *ip);
+void free_buf (char *buf);
 
 #endif

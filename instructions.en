@@ -24,11 +24,11 @@ DEF_CMD(DUMP, 10, 1, {stack_dump(stk, (char*) __PRETTY_FUNCTION__,
 
 //DEF_CMD(LABEL, 12, 1)
 
-DEF_STND_CMD(CALL, 13, 1, {CALL_})
+DEF_J_CMD(CALL, 13, 1, {CALL_ JMP})
 
-//DEF_CMD(CALL_LABEL,14,1)
+//DEF_CMD(CALL_LABEL, 14, 1)
 
-DEF_CMD(RET, 15, 1, {ip = stack_pop(&call_stack); ip--;})
+DEF_CMD(RET, 15, 1, {int temp_ip = stack_pop(&call_stack); if (temp_ip == POISON) ip++; else ip = temp_ip; ip--;})
 
 DEF_CMD(SQRT, 16, 1, {PUSH(sqrt(POP));})
 

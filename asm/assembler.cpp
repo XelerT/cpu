@@ -5,6 +5,9 @@
 #include <ctype.h>
 #include "assembler.h"
 
+#define $ fprintf(stderr, "I'm here. File %s Line %d\n", __FILE__, __LINE__);
+// #define $
+
 int check_argv (int argc, char **argv)
 {
         if (argc != 3)
@@ -33,6 +36,7 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
         int ip = 0;
         for (int i = 0; i < code->n_lines; i++) {
                 sscanf(code->lines[i].ptr, "%s", cmd);
+                printf("cmd -%s- %d ip=%d\n", cmd, i, ip);
 
 #include "asm_instructions.en"
 
@@ -40,16 +44,23 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
                         if (!second_cycle)
                                 create_label(labels, cmd, ip, 0);
                         asm_code[ip++] = CMD_LABEL;
-                } else {
+
+                }
+                /* else {
                         if (get_jmp_line(labels, cmd) != NO_LABEL) {
                                 if (!second_cycle)
                                         create_label(labels, cmd, ip, 1);
                                 asm_code[ip++] = CMD_CALL_LABEL;
                         }
-                }
+                } */
+                free_buf(cmd);
         }
+        for (int i = 0; i <= ip; i++) {
+                printf("%d ", asm_code[i]);
+        }
+        printf("\n");
         if (second_cycle) {
-                return 0;
+                return ip;
         } else {
                 if (convert_code(code, output_code, 1, labels, asm_code) == NO_LABEL)
                         return NO_LABEL;
@@ -58,11 +69,11 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
         for (int i = 0; i <= ip; i++) {
                 printf("%d ", asm_code[i]);
                 fprintf(output_code, "%d ", asm_code[i]);
-                if (asm_code[i] == CMD_HLT)
-                        fprintf(output_code, "\n");
+                // if (asm_code[i] == CMD_HLT)
+                        // fprintf(output_code, "\n");
         }
-
-        listing(code, asm_code, (char *) __PRETTY_FUNCTION__, __LINE__);
+$
+        // listing(code, asm_code, (char *) __PRETTY_FUNCTION__, __LINE__);
         return 0;
 }
 
@@ -81,12 +92,18 @@ int asm_jmp_call (int second_cycle, code_t *code, int *asm_code,
                 sscanf(code->lines[i].ptr + strlen(cmd), "%s", name);
                 if ((asm_code[(*ip)++] = get_jmp_line(labels, name)) == NO_LABEL)
                         return NO_LABEL;
+                printf("asm line %d\n", asm_code[*ip - 1]);
         } else {
-                sscanf(code->lines[i].ptr + strlen(cmd), "%s", get_free_label_name(labels));
-                if (stricmp(cmd, "jmp") == 0)
-                        asm_code[(*ip)++] = -1;
-                else if (stricmp(cmd, "call") == 0)
-                        asm_code[(*ip)++] = -2;
+        $
+                char label_name[MAX_NAME_LENGTH] = {0};
+                sscanf(code->lines[i].ptr + strlen(cmd), "%s", label_name);
+                // if (get_jmp_line(labels, label_name) != NO_LABEL) {
+                $
+                        if (stricmp(cmd, "jmp") == 0)
+                                asm_code[(*ip)++] = -1;
+                        else if (stricmp(cmd, "call") == 0)
+                                asm_code[(*ip)++] = -2;
+                // }
         }
 
         return 0;
@@ -117,7 +134,7 @@ int get_pp_code (const char *val, int *asm_code, const char *cmd, int coeff)
                         *asm_code = reg;
                 } else if ((stricmp(cmd, "push") == 0) || (stricmp(cmd, "pushf") == 0)) {
                         if (sscanf(val, "%f", &dot_num)) {
-                        printf("dotnum %f\n", dot_num);
+                        // printf("dotnum %f\n", dot_num);
                                 *asm_code = (int) (dot_num * coeff);
                                 num |= ARG_IMMED;
                         } else if (sscanf(val, "%d", asm_code))
@@ -142,41 +159,44 @@ void listing (code_t *code, int *asm_code, char *function, int line)
         printf("\n\nListing for %s on the %d line.\n\n", function, line);
         int ip = 0;
         for (int i = 0; i < code->n_lines; i++, ip++) {
-                switch (asm_code[ip] & MASK_CMD) {
-                case CMD_PUSH:
-                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
-                        ip++;
-                        break;
-                case CMD_PUSHF:
-                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
-                        ip++;
-                        break;
-                case CMD_POPF:
-                        if ((asm_code[ip] & ARG_REG) || (asm_code[ip] & ARG_RAM))
+                if (*code->lines[i].ptr != '\0' && *code->lines[i].ptr != '\n')
+                        switch (asm_code[ip] & MASK_CMD) {
+                        case CMD_PUSH:
                                 printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
-                        if (asm_code[ip] & ARG_IMMED)
-                                printf("%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
-                        ip++;
-                        break;
-                case CMD_POP:
-                        if ((asm_code[ip] & ARG_REG) || (asm_code[ip] & ARG_RAM))
+                                ip++;
+                                break;
+                        case CMD_PUSHF:
                                 printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
-                        if (asm_code[ip] & ARG_IMMED)
-                                printf("%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
-                        ip++;
-                        break;
-                case CMD_JMP:
-                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
-                        ip++;
-                        break;
-                case CMD_CALL:
-                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
-                        ip++;
-                        break;
-                default:
-                        printf("*%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
-                        break;
-                }
+                                ip++;
+                                break;
+                        case CMD_POPF:
+                                if ((asm_code[ip] & ARG_REG) || (asm_code[ip] & ARG_RAM))
+                                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                                if (asm_code[ip] & ARG_IMMED)
+                                        printf("%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
+                                        ip++;
+                                break;
+                        case CMD_POP:
+                                if ((asm_code[ip] & ARG_REG) || (asm_code[ip] & ARG_RAM))
+                                        printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                                if (asm_code[ip] & ARG_IMMED)
+                                        printf("%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
+                                ip++;
+                                break;
+                        case CMD_JMP:
+                                printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                                ip++;
+                                break;
+                        case CMD_CALL:
+                                printf("%s\t | %d %d\n", code->lines[i].ptr, asm_code[ip], asm_code[ip + 1]);
+                                ip++;
+                                break;
+                        default:
+                                printf("*%s\t | %d\n", code->lines[i].ptr, asm_code[ip]);
+                                break;
+                        }
+                else
+                        ip--;
         }
 }
 
@@ -206,9 +226,13 @@ int get_jmp_line (labels_t *labels, char *name)
         assert(labels);
         assert(name);
 
-        for (int i = 0; i < MAX_N_LABELS; i++)
-                if (!strcmp(labels[i].name, name))
+        for (int i = 0; i < MAX_N_LABELS; i++) {
+                // printf("+line %s: %d %d\n", labels[i].name, labels[i].line, __LINE__);
+                if (!strcmp(labels[i].name, name)) {
+                        // printf("+-line %s: %d %d\n", labels[i].name, labels[i].line, __LINE__);
                         return labels[i].line;
+                }
+        }
 
         return NO_LABEL;
 }
@@ -243,6 +267,7 @@ int create_label (labels_t *labels, const char *cmd, int n_line, int is_call)
                         if (labels[i].name[0] == '\0') {
                                 strcpy(labels[i].name, name);
                                 labels[i].line = n_line;
+                                printf("created label line %s: %d\n", labels[i].name, labels[i].line);
                                 // printf("N_LINE %d %s\n", labels[i].line, labels[i].name);
                                 break;
                         }
@@ -270,4 +295,13 @@ void append_txt (char *output_file_name)
                                 strcpy(output_file_name + i, ".txt");
                                 break;
                         }
+}
+
+void free_buf (char *buf)
+{
+        assert(buf);
+
+        for (int i = 0; buf[i] != '\0'; i++) {
+                buf[i] = '\0';
+        }
 }

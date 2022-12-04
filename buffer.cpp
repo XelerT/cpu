@@ -4,8 +4,15 @@
 #include <stdlib.h>
 #include "buffer.h"
 
+#define $ fprintf(stderr, "I'm here. File %s Line %d\n", __FILE__, __LINE__);
+// #define $
+
 void get_code (FILE *input, code_t *code, char *code_file)
 {
+        assert(input);
+        assert(code);
+        assert(code_file);
+
         struct stat file = {};
         if (stat(code_file, &file) < 0)
                 return;
@@ -45,11 +52,14 @@ void divide_code (code_t *code)
         }
         code->lines = lines;
         for (size_t i = 0; i < code->n_lines; i++) {
-                lines[i].ptr = buf;
-                while (*buf != '\n' && *buf != '\0')
+                if (*(buf + 1) != '\n' && *(buf + 1) != '\0') {
+                        lines[i].ptr = buf;
+                        while (*buf != '\n' && *buf != '\0')
+                                buf++;
                         buf++;
-                buf++;
-                lines[i].length = buf - lines[i].ptr;
+                        lines[i].length = buf - lines[i].ptr;
+                } else
+                        buf++;
         }
         assert(lines);
 }

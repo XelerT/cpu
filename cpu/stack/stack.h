@@ -21,6 +21,7 @@
 
 static const int DEF_CAPACITY = 10;
 static const int N_CANARIES = 3;
+static const int POISON = -2147443699;
 
 typedef int elem_t;
 
@@ -46,9 +47,9 @@ enum errors_t
 struct var_info
 {
         int line = 0;
-        char *func = nullptr;
-        char *file = nullptr;
-        char *var  = nullptr;
+        const char *func;
+        const char *file;
+        const char *var;
 };
 
 struct stack
@@ -67,7 +68,7 @@ struct stack
 void print_stack (stack *stk);
 int stack_error (stack *stk);
 int stack_dump (stack *stk, char *func, char *file, int line);
-int oper_stack_ctor (stack *stk, size_t capacity, char *var, char *func, char *file, int line);
+int oper_stack_ctor (stack *stk, size_t capacity, const char *var, const char *func, const char *file, int line);
 int stack_resize (stack *stk, size_t capacity);
 int stack_push (stack *stk, elem_t value);
 elem_t stack_pop (stack *stk);

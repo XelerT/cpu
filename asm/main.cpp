@@ -3,6 +3,9 @@
 #include <string.h>
 #include "assembler.h"
 
+#define $ fprintf(stderr, "I'm here. File %s Line %d\n", __FILE__, __LINE__);
+// #define $
+
 int main (int argc, char *argv[])
 {
         if (int i = check_argv(argc, argv))
@@ -24,7 +27,7 @@ int main (int argc, char *argv[])
         code_t code = {};
 
         labels_t labels[MAX_N_LABELS] = {};
-        int *asm_code = (int*) calloc(/*????????????*/code.n_lines * 2/*????????????*/, sizeof(int)); // ???????????????????
+        int *asm_code = (int*) calloc(code.n_lines * 2, sizeof(int));
         if (!asm_code) {
                 printf("Calloc return null pointer.\n");
                 return NULL_CALLOC;
@@ -34,8 +37,10 @@ int main (int argc, char *argv[])
                 printf("No label\n");
                 return NO_LABEL;
         }
-
+$
         fclose(src_code);
+        $
         fclose(output_code);
+        $
         return 0;
 }

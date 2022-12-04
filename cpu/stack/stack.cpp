@@ -13,10 +13,9 @@ static const char N_ERRORS = 5;
 static const char N_ERRORS = 4;
 #endif  /*HASH_ON*/
 
-static const int POISON = -2147443699;
 static int errors = 0;
 
-int oper_stack_ctor (stack *stk, size_t capacity, char *var, char *func, char *file, int line)
+int oper_stack_ctor (stack *stk, size_t capacity, const char *var, const char *func, const char *file, int line)
 {
         assert(stk);
 
@@ -43,6 +42,7 @@ int oper_stack_ctor (stack *stk, size_t capacity, char *var, char *func, char *f
         // ASSERT_OK(stk,__PRETTY_FUNCTION__,__FILE__,__LINE__);
         if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
                 return CTOR_ERROR;
+        return 0;
 }
 
 int stack_resize (stack *stk, size_t capacity)
@@ -94,6 +94,8 @@ elem_t stack_pop(stack *stk)
         if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
                 return POP_ERROR;
 
+        if (stk->size == 0)
+                return POISON;
         elem_t poped_val = stk->data[--stk->size];
         stk->data[stk->size] = POISON;
 

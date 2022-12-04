@@ -22,5 +22,6 @@ int divide_cmds (code_t *code);
 int execute_code (code_t *code, stack *stk, cpu_t *cpu);
 int tens_count (int num);
 void append_txt (char *output_file_name);
+int source_file_ctor (FILE *source_code, char *input_file_name, char *argv);
 
 #endif /*CPU_H*/
