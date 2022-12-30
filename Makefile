@@ -64,6 +64,10 @@ asm:
 cpu_def:
 	@ g++ -E $(CPU_OUTPUT) $(CFLAGS) $(CPU_CFILES) >> defines.txt
 
+.PHONY: asm_def
+asm_def:
+	@ g++ -E $(ASM_OUTPUT) $(CFLAGS) $(ASM_CFILES) >> defines.txt
+
 .PHONY: cpu
 cpu:
 	@ g++ -o $(CPU_OUTPUT) $(CFLAGS) $(CPU_CFILES)

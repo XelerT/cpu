@@ -28,7 +28,7 @@ void get_code (FILE *input, code_t *code, char *code_file)
         n_chars = fread(buf, sizeof(char), file.st_size, input);
         code->n_chars = n_chars;
 
-        for (int i = 0; i < n_chars; i++)
+        for (size_t i = 0; i < n_chars; i++)
                 if (buf[i] == '\n')
                         buf[i] = '\0';
 
@@ -45,12 +45,15 @@ void divide_code (code_t *code)
 
         buf[code->n_chars + 1] = '\0';
 
-        struct line_t *lines = (struct line_t*) calloc(code->n_lines + 1, sizeof(line_t));
+        line_t *lines = (line_t*) calloc(code->n_lines + 1, sizeof(line_t));
         if (!lines) {
                 printf("Calloc returned NULL.\n");
                 return;
         }
         code->lines = lines;
+        assert(lines);
+        assert(code->lines);
+
         for (size_t i = 0; i < code->n_lines; i++) {
                 if (*(buf + 1) != '\n' && *(buf + 1) != '\0') {
                         lines[i].ptr = buf;

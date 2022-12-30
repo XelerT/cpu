@@ -4,9 +4,11 @@
 
 // #define VAR_INFO(var) {#var, __PRETTY_FUNCTION__, __FILE__, __LINE__}
 // #define stack_ctor(stk, capacity) oper_stack_ctor(stk, capacity, VAR_INFO(stk))
-#define ASSERT_OK(stk,__PRETTY_FUNCTION__,__FILE__,__LINE__)  if (errors = stack_error(stk)) {                                  \
-                                stack_dump(stk, errors, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__);               \
-                        }                                                                                                       \
+#define ASSERT_OK(stk) stack_dump(stk, __PRETTY_FUNCTION__, __FILE__, __LINE__)
+#define stack_ctor(STACK) oper_stack_ctor(STACK, DEFAULT_CAPACITY, #STACK, __PRETTY_FUNCTION__,__FILE__, __LINE__)
+
+#define $ fprintf(stderr, "I'm here. File %s Line %d\n", __FILE__, __LINE__);
+#define $
 
 #define FULL_SECURITY //Comment line to turn off canaries and hashes
 #ifdef FULL_SECURITY
@@ -67,7 +69,7 @@ struct stack
 
 void print_stack (stack *stk);
 int stack_error (stack *stk);
-int stack_dump (stack *stk, char *func, char *file, int line);
+int stack_dump (stack *stk, const char *func, const char *file, int line);
 int oper_stack_ctor (stack *stk, size_t capacity, const char *var, const char *func, const char *file, int line);
 int stack_resize (stack *stk, size_t capacity);
 int stack_push (stack *stk, elem_t value);

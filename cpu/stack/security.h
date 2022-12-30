@@ -12,7 +12,7 @@ int check_canaries (stack *stk);
 #ifdef HASH_ON
 const uint64_t SEED = 5381;
 
-uint64_t gnu_hash_stack   (const void *ptr, uint64_t seed);
+uint64_t gnu_hash_stack                    (uint64_t seed);
 uint64_t gnu_hash_data    (const void *ptr, uint64_t seed);
 uint64_t check_data_hash  (const void *ptr, uint64_t seed);
 uint64_t check_stack_hash (const void *ptr, uint64_t seed);

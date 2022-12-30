@@ -28,9 +28,8 @@ int check_canaries (stack *stk)
 
 
 #ifdef HASH_ON
-uint64_t gnu_hash_stack (const void *ptr, uint64_t seed)
+uint64_t gnu_hash_stack (uint64_t seed)
 {
-        stack *stk = (stack*) ptr;
         uint64_t h = seed;
 
         h = ((h << 5) + h) + sizeof(stack);
@@ -40,7 +39,7 @@ uint64_t gnu_hash_stack (const void *ptr, uint64_t seed)
 
 uint64_t gnu_hash_data (const void *ptr, uint64_t seed)
 {
-        stack *stk = (stack*) ptr;
+        const stack *stk = (const stack*) ptr;
         elem_t *data = (elem_t*) stk->data;
         uint64_t h = seed;
 
@@ -52,8 +51,7 @@ uint64_t gnu_hash_data (const void *ptr, uint64_t seed)
 
 uint64_t check_data_hash (const void *ptr, uint64_t seed)
 {
-        stack *stk = (stack*) ptr;
-        elem_t *data = (elem_t*) stk->data;
+        const stack *stk = (const stack*) ptr;
         uint64_t new_hash = gnu_hash_data(stk, seed);
         if (new_hash != stk->hash->hash_data)
                 return 1;
@@ -62,9 +60,8 @@ uint64_t check_data_hash (const void *ptr, uint64_t seed)
 
 uint64_t check_stack_hash (const void *ptr, uint64_t seed)
 {
-        stack *stk = (stack*) ptr;
-        elem_t *data = (elem_t*) stk->data;
-        uint64_t new_hash = gnu_hash_stack(stk, seed);
+        const stack *stk = (const stack*) ptr;
+        uint64_t new_hash = gnu_hash_stack(seed);
         if (new_hash != stk->hash->hash_stack)
                 return 1;
         return 0;

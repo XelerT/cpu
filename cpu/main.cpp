@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include "cpu.h"
 
-#define $ fprintf(stderr, "I'm here. File %s Line %d\n", __FILE__, __LINE__);
-#define $
-
 int main (int argc, char *argv[])
 {
         if (argc != 2)
@@ -11,8 +8,7 @@ int main (int argc, char *argv[])
 
         code_t code = {};
         stack stk = {};
-        if (oper_stack_ctor(&stk, DEFAULT_CAPACITY, (char*) "stk",
-                            (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+        if (stack_ctor(&stk))
                 return CTOR_ERROR;
         $
         cpu_t cpu = {};
@@ -31,7 +27,7 @@ int main (int argc, char *argv[])
 
         int error = 0;
 
-        if (error = divide_cmds(&code)) {
+        if ((error = divide_cmds(&code))) {
                 free(code.cmds);
                 return error;
         }

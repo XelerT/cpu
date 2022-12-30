@@ -13,7 +13,7 @@ static const char N_ERRORS = 5;
 static const char N_ERRORS = 4;
 #endif  /*HASH_ON*/
 
-static int errors = 0;
+// static int errors = 0;
 
 int oper_stack_ctor (stack *stk, size_t capacity, const char *var, const char *func, const char *file, int line)
 {
@@ -33,14 +33,14 @@ int oper_stack_ctor (stack *stk, size_t capacity, const char *var, const char *f
         stk->hash = (gnu_hash*) calloc(1, sizeof(gnu_hash));
         if (stk->data == nullptr)
                 return NULL_HASH_PTR;
-        stk->hash->hash_stack = gnu_hash_stack (stk, SEED);
+        stk->hash->hash_stack = gnu_hash_stack (SEED);
         stk->hash->hash_data  = gnu_hash_data  (stk, SEED);
 #endif /*HASH_ON*/
 
         get_canaries(stk);
 
         // ASSERT_OK(stk,__PRETTY_FUNCTION__,__FILE__,__LINE__);
-        if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+        if (ASSERT_OK(stk))
                 return CTOR_ERROR;
         return 0;
 }
@@ -61,7 +61,7 @@ int stack_resize (stack *stk, size_t capacity)
 #endif /*HASH_ON*/
 
         // ASSERT_OK(stk,__PRETTY_FUNCTION__,__FILE__,__LINE__);
-        if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+        if (ASSERT_OK(stk))
                 return RESIZE_ERROR;
 
         return 0;
@@ -71,7 +71,7 @@ int stack_push (stack *stk, elem_t value) //returns errors
 {
         assert(stk);
         // ASSERT_OK(stk,__PRETTY_FUNCTION__,__FILE__,__LINE__);
-        if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+        if (ASSERT_OK(stk))
                 return PUSH_ERROR;
         if (stk->size + DEF_CAPACITY > stk->capacity) {
                 stack_resize(stk, stk->capacity + DEF_CAPACITY);
@@ -85,13 +85,13 @@ int stack_push (stack *stk, elem_t value) //returns errors
 
         // ASSERT_OK(stk,__PRETTY_FUNCTION__,__FILE__,__LINE__);
 
-        return stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__);
+        return ASSERT_OK(stk);
 }
 
 elem_t stack_pop(stack *stk)
 {
         assert(stk);
-        if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+        if (ASSERT_OK(stk))
                 return POP_ERROR;
 
         if (stk->size == 0)
@@ -100,13 +100,13 @@ elem_t stack_pop(stack *stk)
         stk->data[stk->size] = POISON;
 
         if (stk->size +  2 * DEF_CAPACITY < stk->capacity)
-                stk->capacity = (stk, stk->capacity - 2 * DEF_CAPACITY);
+                stk->capacity = stk->capacity - 2 * DEF_CAPACITY;
 
 #ifdef HASH_ON
         stk->hash->hash_data  = gnu_hash_data  (stk, SEED);
 #endif /*HASH_ON*/
 
-        if (stack_dump(stk, (char*) __PRETTY_FUNCTION__, (char*) __FILE__, __LINE__))
+        if (ASSERT_OK(stk))
                 return POP_ERROR;
 
         return poped_val;
@@ -133,7 +133,7 @@ void free_stack (stack *stk)
         free(stk->hash);
 }
 
-int stack_dump (stack *stk, char *func, char *file, int line) // print all info, returns errors
+int stack_dump (stack *stk, const char *func, const char *file, int line) // print all info, returns errors
 {
         // FILE *output = nullptr;
         // output = fopen("log.txt", "a");
@@ -144,7 +144,7 @@ int stack_dump (stack *stk, char *func, char *file, int line) // print all info,
 
         int multp_errors = 0;
         for (int i = 1; i < N_ERRORS + 1; i++) {
-                if ((errors >> (N_ERRORS - i)) & ~(~0 << 1) != 0) {
+                if (((errors >> (N_ERRORS - i)) & ~(~0u << 1)) != 0) {
                         printf("\nError:\n");
                         if (i == N_ERRORS) {
                                 printf(" Stack pointer is null.\n\n");
@@ -155,22 +155,22 @@ int stack_dump (stack *stk, char *func, char *file, int line) // print all info,
                         }
                         if (!multp_errors) {
                                 printf(" %s at %s (%d):\n"
-                                       " Stack[%x] (%s)\n"
+                                       " Stack[%p] (%s)\n"
                                        " %s at %s at %s (%d)\n"
                                        " size = %lld,"
                                        " capacity = %lld,"
-                                       " data[%x]\n", func, file, line,
+                                       " data[%p]\n", func, file, line,
                                        (stk == nullptr) ? 0: stk, (stk == nullptr) ? "mistake": "ok", stk->info.var,
                                        stk->info.func, stk->info.file, stk->info.line, stk->size, stk->capacity, (stk->data == nullptr) ? 0: stk->data);
 #ifdef HASH_ON
-                                printf("Required stack hash: %lld\nActual   stack hash: %lld\n", stk->hash->hash_stack, gnu_hash_stack (stk, SEED));
+                                printf("Required stack hash: %lld\nActual   stack hash: %lld\n", stk->hash->hash_stack, gnu_hash_stack (SEED));
                                 printf("Required  data hash: %lld\nActual    data hash: %lld\n", stk->hash->hash_data,  gnu_hash_data  (stk, SEED));
 #endif /*HASH_ON*/
-                                for (int j = 0; j < stk->capacity; j++) {
+                                for (size_t j = 0; j < stk->capacity; j++) {
                                         if (stk->data[j] == POISON)
-                                                        printf("[%d] = NAN(POISON)\n", j);
+                                                        printf("[%lld] = NAN(POISON)\n", j);
                                         else
-                                                printf("*[%d] = %d\n", j, stk->data[j]);
+                                                printf("*[%lld] = %d\n", j, stk->data[j]);
                                 }
                         }
                         multp_errors = 1;
@@ -194,6 +194,8 @@ int stack_dump (stack *stk, char *func, char *file, int line) // print all info,
                                 printf(" Hash of struct has been changed.\n\n");
                                 return 6;
 #endif /*HASH_ON*/
+                        default:
+                                printf("Unknown error.\n");
                        }
                         printf("\n");
                 }
@@ -227,10 +229,6 @@ int stack_error (stack *stk) // checks have an error
 #endif /*HASH_ON*/
         if (stk->data == nullptr)
                 error |= 2;
-        if (stk->size < 0)
-                error |= 4;
-        if (stk->capacity < 0)
-                error |= 8;
 
         return error;
 }

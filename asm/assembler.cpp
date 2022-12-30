@@ -3,7 +3,9 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 #include "assembler.h"
+#include "..\buffer.h"
 
 #define $ fprintf(stderr, "I'm here. File %s Line %d\n", __FILE__, __LINE__);
 // #define $
@@ -26,6 +28,145 @@ int check_argv (int argc, char **argv)
         return 0;
 }
 
+int pre_asm (code_t *code)
+{
+        assert(code);
+
+        int n_new_lines  = 0;
+        size_t n_oper = count_op(code);
+        if (!n_oper)
+                return 0;
+        char *buf = (char*) calloc(code->n_chars + n_oper * 30, sizeof(char));
+        if (!buf) {
+                fprintf(stderr, "Calloc returned NULL.\n");
+                return NULL_CALLOC;
+        }
+        line_t *lines = (line_t*) calloc(code->n_lines + n_oper * 5, sizeof(line_t));
+        if (!lines) {
+                fprintf(stderr, "Calloc returned NULL.\n");
+                return NULL_CALLOC;
+        }
+        size_t char_counter = 0;
+        size_t lines_counter = 0;
+        size_t temp = 0;
+        char part1[MAX_NAME_LENGTH] = {'\0'};
+        char part2[MAX_NAME_LENGTH] = {'\0'};
+        char op = 0;
+        for (size_t i = 0; i < code->n_lines; i++) {
+                $
+                if ((op = contain_op(code->lines[i].ptr, code->lines[i].length))) {
+                        $
+                        int is_pop  = !strncmp(code->lines[i].ptr, "pop [", 5);
+                        int is_push = !strncmp(code->lines[i].ptr, "push [", 6);
+                        if (is_pop == is_push) {
+                                fprintf(stderr, "Lexical mistake in %lld line.\n", i);
+                                return LEX_ERROR;
+                        }
+                        if (is_pop)
+                                temp = 5;
+                        else
+                                temp = 6;
+
+                        int n_chars = 0;
+                        sscanf(code->lines[i].ptr + temp, "%s %n", part1, &n_chars);
+                        temp += (size_t) n_chars + 1;
+                        sscanf(code->lines[i].ptr + temp, "%[^]] %n", part2, &n_chars);
+                        temp += n_chars;
+                        paste_new_part(lines, part1, part2, buf, &char_counter, &lines_counter, is_pop, op);
+                        n_new_lines += 4;
+                } else {
+                        $
+                        temp = sprintf(buf + char_counter, "%s", code->lines[i].ptr) + 1;
+                        $
+                        lines[lines_counter].ptr = buf + char_counter;
+                        lines[lines_counter].length = temp;
+                        printf("%s %d\n", lines[lines_counter].ptr, lines_counter);
+                        lines_counter++;
+                        char_counter += temp;
+                }
+        }
+
+        code->n_lines += n_new_lines;
+        $
+        free(code->lines);
+        free(code->buf);
+        $
+        code->lines = lines;
+        code->buf   =   buf;
+        $
+        return n_new_lines;
+}
+
+#define next_line       lines[*lines_counter].ptr = buf + *char_counter;          \
+                        lines[*lines_counter].length = temp;                      \
+                        printf("new line %p: %s\n", lines[*lines_counter].ptr, lines[*lines_counter].ptr);       \
+                        ++*lines_counter;                                         \
+                        *char_counter += temp;
+
+int paste_new_part (line_t *lines, char *part1, char *part2, char *buf,
+                    size_t *char_counter, size_t *lines_counter, int is_pop, char op)
+{
+        assert(part1);
+        assert(part2);
+        assert(buf);
+        assert(char_counter);
+        assert(lines_counter);
+
+        size_t temp = sprintf(buf + *char_counter, "push %s\n", part1) + 1;
+        next_line
+        temp += sprintf(buf + *char_counter, "push %s\n", part2) + 1;
+        next_line
+        switch (op) {
+        case '+':
+                temp += sprintf(buf + *char_counter, "add\n") + 1;
+                break;
+        case '-':
+                temp += sprintf(buf + *char_counter, "sub\n") + 1;
+                break;
+        case '*':
+                temp += sprintf(buf + *char_counter, "mul\n") + 1;
+                break;
+        default:
+                return LEX_ERROR;
+        }
+        next_line
+        temp += sprintf(buf + *char_counter, "pop rax\n") + 1;
+        next_line
+        if (is_pop)
+                temp += sprintf(buf + *char_counter, "pop [rax]\n") + 1;
+        else
+                temp += sprintf(buf + *char_counter, "push [rax]\n") + 1;
+        next_line
+        $
+        return 0;
+}
+#undef next_line
+
+size_t count_op (code_t *code)
+{
+        assert(code);
+
+        size_t count = 0;
+        for (size_t i = 0; i < code->n_chars; i++) {
+                if (code->buf[i] == '+' || code->buf[i] == '-' || code->buf[i] == '*')
+                        count++;
+        }
+
+        return count;
+}
+
+char contain_op (char *str, size_t length)
+{
+        assert(str);
+
+        for (size_t i = length - 1; i; i--) {
+                if (str[i] == '+' || str[i] == '-' || str[i] == '*')
+                        return str[i];
+        }
+
+        return 0;
+}
+
 int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *labels, int *asm_code)
 {
         assert(code);
@@ -34,9 +175,9 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
         char cmd[MAX_NAME_LENGTH]  = {};
         char name[MAX_NAME_LENGTH] = {};
         int ip = 0;
-        for (int i = 0; i < code->n_lines; i++) {
+        for (size_t i = 0; i < code->n_lines; i++) {
                 sscanf(code->lines[i].ptr, "%s", cmd);
-                printf("cmd -%s- %d ip=%d\n", cmd, i, ip);
+                printf("cmd -%s- %lld ip=%d\n", cmd, i, ip);
 
 #include "asm_instructions.en"
 
@@ -60,12 +201,14 @@ int convert_code (code_t *code, FILE *output_code, int second_cycle, labels_t *l
         }
         printf("\n");
         if (second_cycle) {
+                $
                 return ip;
         } else {
+                $
                 if (convert_code(code, output_code, 1, labels, asm_code) == NO_LABEL)
                         return NO_LABEL;
         }
-
+        $
         for (int i = 0; i <= ip; i++) {
                 printf("%d ", asm_code[i]);
                 fprintf(output_code, "%d ", asm_code[i]);
@@ -78,7 +221,7 @@ $
 }
 
 int asm_jmp_call (int second_cycle, code_t *code, int *asm_code,
-             char *cmd, char *name, labels_t *labels, int i, int *ip)
+             char *cmd, char *name, labels_t *labels, size_t i, int *ip)
 {
         assert(code);
         assert(asm_code);
@@ -135,7 +278,7 @@ int get_pp_code (const char *val, int *asm_code, const char *cmd, int coeff)
                 } else if ((stricmp(cmd, "push") == 0) || (stricmp(cmd, "pushf") == 0)) {
                         if (sscanf(val, "%f", &dot_num)) {
                         // printf("dotnum %f\n", dot_num);
-                                *asm_code = (int) (dot_num * coeff);
+                                *asm_code = (int) (dot_num * (float) coeff);
                                 num |= ARG_IMMED;
                         } else if (sscanf(val, "%d", asm_code))
                                 num = ARG_IMMED;
@@ -158,7 +301,7 @@ void listing (code_t *code, int *asm_code, char *function, int line)
 
         printf("\n\nListing for %s on the %d line.\n\n", function, line);
         int ip = 0;
-        for (int i = 0; i < code->n_lines; i++, ip++) {
+        for (size_t i = 0; i < code->n_lines; i++, ip++) {
                 if (*code->lines[i].ptr != '\0' && *code->lines[i].ptr != '\n')
                         switch (asm_code[ip] & MASK_CMD) {
                         case CMD_PUSH:
@@ -207,7 +350,7 @@ int find_reg (const char *val)
 
         char upper_val[MAX_NAME_LENGTH] = {};
         for (int i = 0; *(val + i) != '\0'; i++)
-                upper_val[i] = toupper(*(val + i));
+                upper_val[i] = (char) toupper(*(val + i));
         static const char *regs_names[N_REGS] = {
 #include "..\registers.en"
                 "R0X"

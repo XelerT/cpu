@@ -21,7 +21,13 @@ int find_reg (const char *val);
 int get_pp_code (const char *val, int *asm_code, const char *name, int coeff);
 char* get_free_label_name (labels_t *label);
 void listing (code_t *code, int *asm_code, char *function, int line);
-int asm_jmp_call (int second_cycle, code_t *code, int *asm_code, char *cmd, char *name, labels_t *labels, int i, int *ip);
+int asm_jmp_call (int second_cycle, code_t *code, int *asm_code, char *cmd, char *name, labels_t *labels, size_t i, int *ip);
 void free_buf (char *buf);
+
+int pre_asm (code_t *code);
+int paste_new_part (line_t *lines, char *part1, char *part2, char *buf,
+                    size_t *char_counter, size_t *lines_counter, int is_pop, char op);
+size_t count_op (code_t *code);
+char contain_op (char *str, size_t length);
 
 #endif
