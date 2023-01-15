@@ -3,6 +3,8 @@ ASM_CFILES = buffer.cpp asm\main.cpp asm\assembler.cpp
 ASM_OUTPUT = asm.exe
 CPU_CFILES = cpu\stack\stack.cpp cpu\stack\security.cpp buffer.cpp cpu\main.cpp cpu\cpu.cpp
 CPU_OUTPUT = cpu.exe
+DIS_ASM_CFILES = buffer.cpp dis_asm\main.cpp dis_asm\dis_asm.cpp
+DIS_ASM_OUTPUT = dis_asm.exe
 
 CFLAGS= -Wshadow    			\
 	-Winit-self 			\
@@ -79,3 +81,11 @@ run_asm:
 .PHONY: run_cpu
 run_cpu:
 	@ cpu.exe output.txt
+
+.PHONY: dis_asm
+dis_asm:
+	@ g++ -o $(DIS_ASM_OUTPUT) $(CFLAGS) $(DIS_ASM_CFILES)
+
+.PHONY: run_dis_asm
+run_dis_asm:
+	@ dis_asm.exe output.txt
